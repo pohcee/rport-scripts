@@ -1,0 +1,8 @@
+#!/usr/bin/env python
+
+import json
+import utils
+
+url = utils.RPORT_URL_ROOT + "/status"
+res = utils.httpGet(url)
+print(json.dumps(res))

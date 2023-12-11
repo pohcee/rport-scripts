@@ -1,0 +1,15 @@
+#!/bin/bash
+
+if [ $# -ne 3 ]; then
+  echo "Usage: $0 clientName remotePath localPath"
+  exit 1
+fi
+
+SSH_CONN=$(rport-tunnel $1)
+SSH_DETAILS=(${SSH_CONN//|/ })
+SCP_PATH=scp://${SSH_DETAILS[0]}@${SSH_DETAILS[1]}:${SSH_DETAILS[2]}$2
+
+if [ $? -eq 0 ]; then
+  echo scp: copying ${SCP_PATH} to $3
+  scp -r -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=quiet "${SCP_PATH}" "$3"
+fi

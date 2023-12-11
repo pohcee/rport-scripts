@@ -1,0 +1,29 @@
+{
+  "name": "@pohcee/rport-scripts",
+  "version": "1.0.1",
+  "description": "A group of bash and python helper scripts with integrated command line completion that target an OpenRport server. Sometimes it's just better to do things via the CLI.",
+  "scripts": {
+    "release": "release-it"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/pohcee/rport-scripts.git"
+  },
+  "author": "Jason Klotzer",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/pohcee/rport-scripts/issues"
+  },
+  "homepage": "https://github.com/pohcee/rport-scripts#readme",
+  "release-it": {
+    "github": {
+      "release": true
+    },
+    "npm": {
+      "publish": false
+    }
+  },
+  "devDependencies": {
+    "release-it": "^17.0.1"
+  }
+}

@@ -1,0 +1,17 @@
+#!/usr/bin/env python
+
+import sys
+import json
+import utils
+
+res = utils.httpGet(utils.RPORT_URL_ROOT + "/clients")
+
+if len(sys.argv) == 1: # --nostatus
+  for client in res:
+    # Get the client info
+    url = "{0}/clients/{1}".format(utils.RPORT_URL_ROOT, client['id'])
+    clientInfo = utils.httpGet(url)
+    client['connection_state'] = clientInfo['connection_state']
+    client['last_heartbeat_at'] = clientInfo['last_heartbeat_at']
+
+print(json.dumps(res))
