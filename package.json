@@ -1,6 +1,6 @@
 {
   "name": "@pohcee/rport-scripts",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "A group of bash and python helper scripts with integrated command line completion that target an OpenRport server. Sometimes it's just better to do things via the CLI.",
   "scripts": {
     "release": "release-it --ci"
