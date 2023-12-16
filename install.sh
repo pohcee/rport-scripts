@@ -1,4 +1,7 @@
 #!/bin/bash
+
+set -e
+
 BIN_DIR=~/bin # TODO: Choose where to install
 
 # Required for completion script
