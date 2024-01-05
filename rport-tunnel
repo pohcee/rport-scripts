@@ -1,21 +1,21 @@
 #!/usr/bin/env python
 
 import requests
-import sys;
+import sys
 import utils
 
 
 if len(sys.argv) < 2:
-  print(f"{sys.argv[0]} <client_name>")
-  sys.exit(1)
+    print(f"{sys.argv[0]} <client_name>")
+    sys.exit(1)
 clientName = sys.argv[1]
 
 # Get the client id from the name
 url = f"{utils.RPORT_URL_ROOT}/clients?filter[name]={clientName}"
 clients = utils.httpGet(url)
 if len(clients) != 1:
-  raise EnvironmentError(f"Unable to find exact match for client: {clientName}")
-clientId = clients[0]['id']
+    raise EnvironmentError(f"Unable to find exact match for client: {clientName}")
+clientId = clients[0]["id"]
 
 # print(f'Setting up SSH tunnel to {clientName}...', file=sys.stderr)
 
@@ -23,26 +23,30 @@ clientId = clients[0]['id']
 url = f"{utils.RPORT_URL_ROOT}/clients/{clientId}"
 clientInfo = utils.httpGet(url)
 
-if clientInfo['connection_state'] != 'connected':
-  raise EnvironmentError(f"Client {clientName} connection state: {clientInfo['connection_state']}")
+if clientInfo["connection_state"] != "connected":
+    raise EnvironmentError(
+        f"Client {clientName} connection state: {clientInfo['connection_state']}"
+    )
 
 # Get a tunnel to this client, which could already exist
-if len(clientInfo['tunnels']) > 0:
-  tunnelInfo = clientInfo['tunnels'][0]
+if len(clientInfo["tunnels"]) > 0:
+    tunnelInfo = clientInfo["tunnels"][0]
 else:
-  # Get my external IP for the fw
-  ip = requests.get('https://checkip.amazonaws.com').text.strip() 
+    # Get my external IP for the fw
+    ip = requests.get("https://checkip.amazonaws.com").text.strip()
 
-  # Create a tunnel to connect to the client
-  url = f"{utils.RPORT_URL_ROOT}/clients/{clientId}/tunnels?remote=22&scheme=ssh&acl={ip}&idle-timeout-minutes=5&protocol=tcp"
-  tunnelInfo = utils.httpPut(url)
+    # Create a tunnel to connect to the client
+    url = f"{utils.RPORT_URL_ROOT}/clients/{clientId}/tunnels?remote=22&scheme=ssh&acl={ip}&idle-timeout-minutes=5&protocol=tcp"
+    tunnelInfo = utils.httpPut(url)
 
 # TODO[JK]: We're unable to pass the password, and also should we use ~/.ssh/config for users?
 # Get data from the vault to connect to this client
-vault = utils.vaultLookup(clientId, ['ssh-user'])
+vault = utils.vaultLookup(clientId, ["ssh-user"])
 
-if 'ssh-user' not in vault:
-  raise EnvironmentError(f"Client {clientName}: Failed to look up metadata 'ssh-user'")
+if "ssh-user" not in vault:
+    raise EnvironmentError(
+        f"Client {clientName}: Failed to look up metadata 'ssh-user'"
+    )
 
 # if 'ssh-pass' not in vault:
 #   raise EnvironmentError(f"Client {clientName}: Failed to look up metadata 'ssh-pass'")

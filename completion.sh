@@ -1,14 +1,13 @@
 #!/bin/bash
 
-_funct() 
-{
+_funct() {
     local cur prev opts
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
-    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    prev="${COMP_WORDS[COMP_CWORD - 1]}"
     opts=$(rport-clients --nostatus | jq -cr '.[].name')
 
-    COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+    COMPREPLY=($(compgen -W "${opts}" -- ${cur}))
     return 0
 }
 complete -F _funct rport-ssh rport-scp rport-sshfs rport-tunnel
