@@ -2,10 +2,19 @@
 
 set -e
 
+fail() {
+  printf >&2 "Error: $1\n"
+  exit 1
+}
+
+req_cmd_exists() {
+  command -v $1 >/dev/null 2>&1 || { fail "Command '$1' is required, but not installed."; }
+}
+
 BIN_DIR=~/bin # TODO: Choose where to install
 
 # Required for completion script
-apt -y install jq
+req_cmd_exists jq
 
 # Install the python packages
 pip install -r requirements.txt
