@@ -4,7 +4,7 @@ A group of bash and python helper scripts with integrated command line completio
 
 ## Installation
 
-1. Install jq [invalid URL removed]
+1. Install jq
 2. Run `install.sh`
 3. Set the following environment variables in your `~/.bashrc` file:
 
