@@ -1,16 +1,13 @@
 # rport-scripts
 
-A group of bash and python helper scripts with integrated command line completion that target an [OpenRport](https://oss.openrport.io) server. Sometimes it's just better to do things via the CLI.
+A group of bash helper scripts with integrated command line completion that target an [OpenRport](https://oss.openrport.io) server. Sometimes it's just better to do things via the CLI.
 
 ## Installation
 
-1. Install jq
-2. Run `install.sh`
-3. Set the following environment variables in your `~/.bashrc` file:
+Simply run the installer. It will check for prerequisites and guide you through the setup.
 
 ```bash
-export RPORT_HOST=rport.changeme.com
-export RPORT_CREDENTIALS=admin:changeme
+./install.sh
 ```
 
 ## Usage

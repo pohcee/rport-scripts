@@ -47,13 +47,14 @@ main() {
 
     # 3. Install the scripts by creating symbolic links
     info "Installing scripts..."
-    for script_path in "${SRC_DIR}"/rport-*; do
-        if [ -f "${script_path}" ] && [[ "${script_path}" != *.md ]]; then
-            local script_name
-            script_name=$(basename "${script_path}")
+    for script_path in "${SRC_DIR}"/rport-*.sh; do
+        if [ -f "${script_path}" ]; then
+            local script_filename
+            script_filename=$(basename "${script_path}")
+            local command_name="${script_filename%.sh}"
             chmod +x "${script_path}"
-            ln -sf "${script_path}" "${BIN_DIR}/${script_name}"
-            info "  - Installed '${script_name}'"
+            ln -sf "${script_path}" "${BIN_DIR}/${command_name}"
+            info "  - Installed '${command_name}'"
         fi
     done
     echo
