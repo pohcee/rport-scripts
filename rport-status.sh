@@ -4,13 +4,15 @@
 
 set -euo pipefail
 
-# --- Helper Functions ---
-# A function to print error messages to stderr and exit.
-fail() {
-    printf >&2 "Error: %s\n" "$1"
+# Source the utility functions
+# readlink -f resolves symlinks to find the true script directory
+SCRIPT_DIR=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
+UTILS_FILE="${SCRIPT_DIR}/rport-utils.sh"
+if [ ! -f "$UTILS_FILE" ]; then
+    echo "Error: Missing rport-utils.sh. It should be in the same directory as the script." >&2
     exit 1
-}
-# --- End Helper Functions ---
+fi
+source "$UTILS_FILE"
 
 # --- Main Script ---
 main() {
@@ -22,25 +24,11 @@ main() {
     command -v jq >/dev/null || fail "'jq' is required but not installed. Please install it."
     command -v curl >/dev/null || fail "'curl' is required but not installed. Please install it."
 
-    local RPORT_URL_ROOT="https://${RPORT_HOST}/api/v1"
-    local endpoint="/status"
-    
-    # -w "\n%{http_code}" appends the status code to the output
-    local response
-    response=$(curl -s -X GET -w "\n%{http_code}" -u "${RPORT_CREDENTIALS}" "${RPORT_URL_ROOT}${endpoint}")
-    
-    local http_code
-    http_code=$(tail -n1 <<< "$response")
+    readonly RPORT_URL_ROOT="https://${RPORT_HOST}/api/v1"
+
     local body
-    body=$(sed '$ d' <<< "$response")
-
-    if [[ "$http_code" -ne 200 ]]; then
-        # Try to get a meaningful error from the JSON response, otherwise show the body
-        local err_msg
-        err_msg=$(echo "$body" | jq -r '.error.text // .')
-        fail "API request failed for ${endpoint}: HTTP ${http_code} - ${err_msg}"
-    fi
-
+    body=$(rport_api "GET" "/status")
+   
     # The API returns the status object inside a "data" key.
     # We extract and pretty-print it with jq, which matches the README example.
     echo "$body" | jq '.data'

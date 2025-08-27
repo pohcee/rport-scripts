@@ -51,6 +51,10 @@ main() {
         if [ -f "${script_path}" ]; then
             local script_filename
             script_filename=$(basename "${script_path}")
+            # Don't install utility scripts as commands
+            if [[ "${script_filename}" == "rport-utils.sh" ]]; then
+                continue
+            fi
             local command_name="${script_filename%.sh}"
             chmod +x "${script_path}"
             ln -sf "${script_path}" "${BIN_DIR}/${command_name}"

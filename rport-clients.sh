@@ -6,32 +6,15 @@
 
 set -euo pipefail
 
-# --- Helper Functions ---
-fail() {
-    printf >&2 "Error: %s\n" "$1"
+# Source the utility functions
+# readlink -f resolves symlinks to find the true script directory
+SCRIPT_DIR=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
+UTILS_FILE="${SCRIPT_DIR}/rport-utils.sh"
+if [ ! -f "$UTILS_FILE" ]; then
+    echo "Error: Missing rport-utils.sh. It should be in the same directory as the script." >&2
     exit 1
-}
-
-rport_api() {
-    local method="$1"
-    local endpoint="$2"
-    local response
-
-    response=$(curl -s -X "$method" -w "\n%{http_code}" -u "${RPORT_CREDENTIALS}" "${RPORT_URL_ROOT}${endpoint}")
-
-    local http_code
-    http_code=$(tail -n1 <<<"$response")
-    local body
-    body=$(sed '$ d' <<<"$response")
-
-    if [[ "$http_code" -ne 200 ]]; then
-        local err_msg
-        err_msg=$(echo "$body" | jq -r '.error.text // .')
-        fail "API request failed for ${endpoint}: HTTP ${http_code} - ${err_msg}"
-    fi
-    echo "$body"
-}
-# --- End Helper Functions ---
+fi
+source "$UTILS_FILE"
 
 # --- Main Script ---
 main() {

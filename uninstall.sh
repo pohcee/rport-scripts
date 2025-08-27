@@ -33,6 +33,10 @@ main() {
         if [ -f "${script_path}" ]; then
             local command_name
             command_name=$(basename "${script_path}" .sh)
+            # Don't try to uninstall utility scripts that were never installed as commands
+            if [[ "${command_name}" == "rport-utils" ]]; then
+                continue
+            fi
             local symlink_path="${BIN_DIR}/${command_name}"
             if [ -L "${symlink_path}" ]; then
                 rm -f "${symlink_path}"

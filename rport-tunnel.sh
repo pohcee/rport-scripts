@@ -6,38 +6,15 @@
 
 set -euo pipefail
 
-# --- Helper Functions ---
-# A function to print error messages to stderr and exit.
-fail() {
-    printf >&2 "Error: %s\n" "$1"
+# Source the utility functions
+# readlink -f resolves symlinks to find the true script directory
+SCRIPT_DIR=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
+UTILS_FILE="${SCRIPT_DIR}/rport-utils.sh"
+if [ ! -f "$UTILS_FILE" ]; then
+    echo "Error: Missing rport-utils.sh. It should be in the same directory as the script." >&2
     exit 1
-}
-
-# A function to make authenticated API calls to rport.
-# It separates the body from the HTTP status code to allow for robust error handling.
-# Usage: rport_api <method> "/endpoint"
-rport_api() {
-    local method="$1"
-    local endpoint="$2"
-    local response
-    
-    # -w "\n%{http_code}" appends the status code to the output
-    response=$(curl -s -X "$method" -w "\n%{http_code}" -u "${RPORT_CREDENTIALS}" "${RPORT_URL_ROOT}${endpoint}")
-    
-    local http_code
-    http_code=$(tail -n1 <<< "$response")
-    local body
-    body=$(sed '$ d' <<< "$response")
-
-    if [[ "$http_code" -ne 200 ]]; then
-        # Try to get a meaningful error from the JSON response, otherwise show the body
-        local err_msg
-        err_msg=$(echo "$body" | jq -r '.error.text // .')
-        fail "API request failed for ${endpoint}: HTTP ${http_code} - ${err_msg}"
-    fi
-    echo "$body"
-}
-# --- End Helper Functions ---
+fi
+source "$UTILS_FILE"
 
 # --- Main Script ---
 main() {
@@ -58,9 +35,9 @@ main() {
     readonly RPORT_URL_ROOT="https://${RPORT_HOST}/api/v1"
 
     # 1. Get the client id from the name
-    local clients_json
-    clients_json=$(rport_api "GET" "/clients?filter[name]=${client_name}")
-    
+    local client_name_encoded=$(urlencode "${client_name}")
+    local clients_json=$(rport_api "GET" "/clients?filter%5Bname%5D=${client_name_encoded}")
+
     [ "$(echo "${clients_json}" | jq -r '.data | length')" -ne 1 ] && fail "Unable to find exact match for client: ${client_name}"
     local client_id
     client_id=$(echo "${clients_json}" | jq -r '.data[0].id')
@@ -87,8 +64,7 @@ main() {
     lport=$(echo "${tunnel_info_json}" | jq -r '.lport')
 
     # 4. Get the ssh-user from the vault
-    local vault_items_json
-    vault_items_json=$(rport_api "GET" "/vault?filter[client_id]=${client_id}")
+    local vault_items_json=$(rport_api "GET" "/vault?filter%5Bclient_id%5D=${client_id}")
     local ssh_user_vault_id
     ssh_user_vault_id=$(echo "${vault_items_json}" | jq -r '.data[] | select(.key == "ssh-user") | .id')
     [ -z "${ssh_user_vault_id}" ] && fail "Client ${client_name}: Failed to look up 'ssh-user' in vault."
