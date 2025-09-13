@@ -2,6 +2,8 @@
 
 set -e
 
+# TODO: #8 Add the ability to specify a command line argument to run a command on the remote host
+
 if [ $# -ne 1 ]; then
   echo "Usage: $0 clientName"
   exit 1
