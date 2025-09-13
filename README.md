@@ -53,10 +53,11 @@ $ rport-status
 
 ### rport-ssh
 
-SSH into a client connected to the Rport server.
+SSH into a client connected to the Rport server. You can also optionally execute a command on the remote host.
 
 ```
 $ rport-ssh client-01
+$ rport-ssh client-01 "ls -l /tmp"
 ```
 
 ### rport-scp
