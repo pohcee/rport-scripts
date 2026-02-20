@@ -18,11 +18,15 @@ source "$UTILS_FILE"
 
 # --- Main Script ---
 main() {
-    if [ $# -ne 1 ]; then
-        echo "Usage: $0 <client_name>" >&2
+    if [ $# -lt 1 ] || [ $# -gt 2 ]; then
+        echo "Usage: $0 <client_name> [remote_port]" >&2
         exit 1
     fi
     local client_name="$1"
+    local remote_port="${2:-22}"
+
+    [[ "${remote_port}" =~ ^[0-9]+$ ]] || fail "Invalid remote_port '${remote_port}': must be an integer between 1 and 65535."
+    [ "${remote_port}" -ge 1 ] && [ "${remote_port}" -le 65535 ] || fail "Invalid remote_port '${remote_port}': must be between 1 and 65535."
 
     # Check for required environment variables
     [ -z "${RPORT_HOST:-}" ] && fail "RPORT_HOST environment variable not set."
@@ -47,17 +51,18 @@ main() {
     client_info_json=$(rport_api "GET" "/clients/${client_id}")
     [ "$(echo "${client_info_json}" | jq -r '.data.connection_state')" != "connected" ] && fail "Client ${client_name} is not connected."
 
-    # 3. Check for an existing tunnel or create a new one
+    # 3. Check for an existing tunnel on the requested remote port or create a new one
     local tunnel_info_json
-    if [ "$(echo "${client_info_json}" | jq '.data.tunnels | length')" -gt 0 ]; then
-        tunnel_info_json=$(echo "${client_info_json}" | jq '.data.tunnels[0]')
+    tunnel_info_json=$(echo "${client_info_json}" | jq -c --argjson remote_port "${remote_port}" 'first(.data.tunnels[]? | select((.remote | tonumber?) == $remote_port)) // empty')
+    if [ -n "${tunnel_info_json}" ]; then
+        :
     else
         local my_ip
         my_ip=$(curl -s https://checkip.amazonaws.com)
         [ -z "${my_ip}" ] && fail "Could not determine public IP address."
         
         local tunnel_response
-        tunnel_response=$(rport_api "PUT" "/clients/${client_id}/tunnels?remote=22&scheme=ssh&acl=${my_ip}&idle-timeout-minutes=5&protocol=tcp")
+        tunnel_response=$(rport_api "PUT" "/clients/${client_id}/tunnels?remote=${remote_port}&scheme=ssh&acl=${my_ip}&idle-timeout-minutes=5&protocol=tcp")
         tunnel_info_json=$(echo "${tunnel_response}" | jq '.data')
     fi
     local lport

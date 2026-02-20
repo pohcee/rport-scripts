@@ -78,7 +78,7 @@ $ rport-sshfs client-01:/home/admin /mnt/remote
 
 ### rport-tunnel
 
-Create a tunnel to a client connected to the Rport server.
+Create a tunnel to a client connected to the Rport server. The optional second argument sets the remote port (default: `22`).
 
 ```
 $ rport-tunnel client-01 3389
