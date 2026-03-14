@@ -51,24 +51,7 @@ main() {
     client_info_json=$(rport_api "GET" "/clients/${client_id}")
     [ "$(echo "${client_info_json}" | jq -r '.data.connection_state')" != "connected" ] && fail "Client ${client_name} is not connected."
 
-    # 3. Check for an existing tunnel on the requested remote port or create a new one
-    local tunnel_info_json
-    tunnel_info_json=$(echo "${client_info_json}" | jq -c --argjson remote_port "${remote_port}" 'first(.data.tunnels[]? | select((.remote | tonumber?) == $remote_port)) // empty')
-    if [ -n "${tunnel_info_json}" ]; then
-        :
-    else
-        local my_ip
-        my_ip=$(curl -s https://checkip.amazonaws.com)
-        [ -z "${my_ip}" ] && fail "Could not determine public IP address."
-        
-        local tunnel_response
-        tunnel_response=$(rport_api "PUT" "/clients/${client_id}/tunnels?remote=${remote_port}&scheme=ssh&acl=${my_ip}&idle-timeout-minutes=5&protocol=tcp")
-        tunnel_info_json=$(echo "${tunnel_response}" | jq '.data')
-    fi
-    local lport
-    lport=$(echo "${tunnel_info_json}" | jq -r '.lport')
-
-    # 4. Get the ssh-user from the vault
+    # 3. Get the ssh-user from the vault
     local vault_items_json=$(rport_api "GET" "/vault?filter%5Bclient_id%5D=${client_id}")
     local ssh_user_vault_id
     ssh_user_vault_id=$(echo "${vault_items_json}" | jq -r '.data[] | select(.key == "ssh-user") | .id')
@@ -79,6 +62,23 @@ main() {
     local ssh_user
     ssh_user=$(echo "${ssh_user_value_json}" | jq -r '.data.value')
     [ -z "${ssh_user}" ] && fail "Client ${client_name}: Vault key 'ssh-user' has no value."
+
+    # 4. Check for an existing tunnel on the requested remote port or create a new one
+    local tunnel_info_json
+    tunnel_info_json=$(echo "${client_info_json}" | jq -c --argjson remote_port "${remote_port}" 'first(.data.tunnels[]? | select((.remote | tonumber?) == $remote_port)) // empty')
+    if [ -n "${tunnel_info_json}" ]; then
+        :
+    else
+        local my_ip
+        my_ip=$(curl -s https://checkip.amazonaws.com)
+        [ -z "${my_ip}" ] && fail "Could not determine public IP address."
+
+        local tunnel_response
+        tunnel_response=$(rport_api "PUT" "/clients/${client_id}/tunnels?remote=${remote_port}&scheme=ssh&acl=${my_ip}&idle-timeout-minutes=5&protocol=tcp")
+        tunnel_info_json=$(echo "${tunnel_response}" | jq '.data')
+    fi
+    local lport
+    lport=$(echo "${tunnel_info_json}" | jq -r '.lport')
 
     # 5. Print the connection details for other scripts to use
     echo "${ssh_user}|${RPORT_HOST}|${lport}"

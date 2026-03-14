@@ -27,13 +27,21 @@ shift
 
 [ $VERBOSE -eq 1 ] && echo "[verbose] Getting tunnel for client: $clientName"
 
-SSH_CONN=$(rport-tunnel "$clientName" 2>&1)
-TUNNEL_EXIT_CODE=$?
-
-if [ $TUNNEL_EXIT_CODE -ne 0 ]; then
+if SSH_CONN=$(rport-tunnel "$clientName" 2>&1); then
+  :
+else
+  TUNNEL_EXIT_CODE=$?
   echo "Error: Failed to establish tunnel for client '$clientName'"
-  [ $VERBOSE -eq 1 ] && echo "[verbose] rport-tunnel exit code: $TUNNEL_EXIT_CODE"
-  [ $VERBOSE -eq 1 ] && echo "[verbose] rport-tunnel output: $SSH_CONN"
+  if [ $VERBOSE -eq 1 ]; then
+    echo "[verbose] rport-tunnel exit code: $TUNNEL_EXIT_CODE"
+    echo "[verbose] rport-tunnel output: $SSH_CONN"
+  else
+    ROOT_CAUSE=$(printf '%s\n' "$SSH_CONN" | grep '❌ Error:' | tail -n1)
+    if [ -z "$ROOT_CAUSE" ]; then
+      ROOT_CAUSE=$(printf '%s\n' "$SSH_CONN" | sed '/^[[:space:]]*$/d' | tail -n1)
+    fi
+    [ -n "$ROOT_CAUSE" ] && echo "$ROOT_CAUSE"
+  fi
   exit 1
 fi
 
