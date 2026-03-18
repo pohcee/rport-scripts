@@ -22,6 +22,7 @@ urlencode() {
 }
 
 # A function to make authenticated API calls to rport.
+# Returns the response body. On HTTP errors, prints error details and fails.
 rport_api() {
     local method="$1"
     local endpoint="$2"
@@ -31,12 +32,24 @@ rport_api() {
     http_code=$(tail -n1 <<<"$response")
     local body
     body=$(sed '$ d' <<<"$response")
-    if [[ "$http_code" -ne 200 ]]; then
+    if [[ "$http_code" -lt 200 || "$http_code" -ge 300 ]]; then
         local err_msg
         err_msg=$(echo "$body" | jq -r '.error.text // .')
         fail "API request failed for ${endpoint}: HTTP ${http_code} - ${err_msg}"
     fi
     echo "$body"
+}
+
+# A function to make authenticated API calls to rport without failing on errors.
+# Returns both the HTTP status code and response body separated by newline.
+# First line: HTTP status code
+# Remaining lines: response body
+rport_api_raw() {
+    local method="$1"
+    local endpoint="$2"
+    local response
+    response=$(curl -s -X "$method" -w "\n%{http_code}" -u "${RPORT_CREDENTIALS}" "${RPORT_URL_ROOT}${endpoint}")
+    echo "$response"
 }
 
 # --- End Helper Functions ---
