@@ -33,11 +33,12 @@ main() {
     echo
 
     # 1. Check for required commands
-    info "Checking prerequisites (jq, curl, ssh, scp, sshfs)..."
+    info "Checking prerequisites (jq, curl, ssh, scp, rsync, sshfs)..."
     command -v jq >/dev/null || fail "'jq' is required but not installed. Please install it."
     command -v curl >/dev/null || fail "'curl' is required but not installed. Please install it."
     command -v ssh >/dev/null || fail "'ssh' is required but not installed. Please install it."
     command -v scp >/dev/null || fail "'scp' is required but not installed. Please install it."
+    command -v rsync >/dev/null || fail "'rsync' is required but not installed. Please install it."
     command -v sshfs >/dev/null || fail "'sshfs' is required but not installed. Please install it."
 
     # 2. Ensure installation directory exists

@@ -29,8 +29,8 @@ _rport_completion() {
     prev="${COMP_WORDS[COMP_CWORD-1]}"
     command="${COMP_WORDS[0]}"
 
-    # For rport-scp, if one argument already contains a colon, we're done with clients.
-    if [[ "$command" == "rport-scp" ]]; then
+    # For rport-scp/rport-rsync, if one argument already contains a colon, we're done with clients.
+    if [[ "$command" == "rport-scp" || "$command" == "rport-rsync" ]]; then
         for word in "${COMP_WORDS[@]}"; do
             if [[ "$word" == *:* && "$word" != "$cur" ]]; then
                 return 0 # Fallback to default (file) completion
@@ -47,4 +47,4 @@ _rport_completion() {
     COMPREPLY=($(compgen -W "${opts}" -- "${cur}"))
     return 0
 }
-complete -F _rport_completion rport-ssh rport-scp rport-sshfs rport-tunnel
+complete -F _rport_completion rport-ssh rport-scp rport-rsync rport-sshfs rport-tunnel

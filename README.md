@@ -68,6 +68,15 @@ Securely copy files to/from a client connected to the Rport server.
 $ rport-scp local-file.txt client-01:remote-file.txt
 ```
 
+### rport-rsync
+
+Synchronize files/directories to/from a client connected to the Rport server using rsync over SSH.
+
+```
+$ rport-rsync ./local-dir/ client-01:/remote/dir/
+$ rport-rsync client-01:/remote/dir/ ./local-dir/
+```
+
 ### rport-sshfs
 
 Mount a remote directory from a client connected to the Rport server via SSHFS.
