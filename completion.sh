@@ -47,4 +47,4 @@ _rport_completion() {
     COMPREPLY=($(compgen -W "${opts}" -- "${cur}"))
     return 0
 }
-complete -F _rport_completion rport-ssh rport-scp rport-rsync rport-sshfs rport-tunnel
+complete -F _rport_completion rport-ssh rport-scp rport-rsync rport-sshfs rport-tunnel rport-metadata

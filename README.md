@@ -75,6 +75,21 @@ Synchronize files/directories to/from a client connected to the Rport server usi
 ```
 $ rport-rsync ./local-dir/ client-01:/remote/dir/
 $ rport-rsync client-01:/remote/dir/ ./local-dir/
+$ rport-rsync -d ./local-dir/ client-01:/remote/dir/
+```
+
+Use `-d` to delete files at the destination that are not present in the source (`rsync --delete`).
+
+### rport-metadata
+
+Show metadata (vault key/value pairs) for a client in JSON format.
+
+```
+$ rport-metadata client-01
+{
+  "ssh-user": "admin",
+  "ssh-pass": "secret"
+}
 ```
 
 ### rport-sshfs

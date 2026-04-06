@@ -39,12 +39,8 @@ main() {
     readonly RPORT_URL_ROOT="https://${RPORT_HOST}/api/v1"
 
     # 1. Get the client id from the name
-    local client_name_encoded=$(urlencode "${client_name}")
-    local clients_json=$(rport_api "GET" "/clients?filter%5Bname%5D=${client_name_encoded}")
-
-    [ "$(echo "${clients_json}" | jq -r '.data | length')" -ne 1 ] && fail "Unable to find exact match for client: ${client_name}"
     local client_id
-    client_id=$(echo "${clients_json}" | jq -r '.data[0].id')
+    client_id=$(rport_get_client_id_by_name "${client_name}")
 
     # 2. Get client info and check connection state
     local client_info_json
@@ -52,16 +48,8 @@ main() {
     [ "$(echo "${client_info_json}" | jq -r '.data.connection_state')" != "connected" ] && fail "Client ${client_name} is not connected."
 
     # 3. Get the ssh-user from the vault
-    local vault_items_json=$(rport_api "GET" "/vault?filter%5Bclient_id%5D=${client_id}")
-    local ssh_user_vault_id
-    ssh_user_vault_id=$(echo "${vault_items_json}" | jq -r '.data[] | select(.key == "ssh-user") | .id')
-    [ -z "${ssh_user_vault_id}" ] && fail "Client ${client_name}: Failed to look up 'ssh-user' in vault."
-
-    local ssh_user_value_json
-    ssh_user_value_json=$(rport_api "GET" "/vault/${ssh_user_vault_id}")
     local ssh_user
-    ssh_user=$(echo "${ssh_user_value_json}" | jq -r '.data.value')
-    [ -z "${ssh_user}" ] && fail "Client ${client_name}: Vault key 'ssh-user' has no value."
+    ssh_user=$(rport_get_client_vault_value_by_key "${client_id}" "ssh-user")
 
     # 4. Check for an existing tunnel on the requested remote port or create a new one
     local tunnel_info_json

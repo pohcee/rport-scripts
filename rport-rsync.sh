@@ -4,13 +4,23 @@ set -e
 
 # Function to print usage and exit
 usage() {
-  echo "Usage: $0 <source> <destination>"
+  echo "Usage: $0 [-d] <source> <destination>"
   echo "  Sync files between local and a remote rport client using rsync over SSH."
+  echo "  -d  Delete files in destination that do not exist in source."
   echo "  Remote path must be specified as <client_name>:<path>"
   echo "  Example: $0 ./local-dir/ client-1:/remote/dir/"
-  echo "  Example: $0 client-1:/remote/dir/ ./local-dir/"
+  echo "  Example: $0 -d client-1:/remote/dir/ ./local-dir/"
   exit 1
 }
+
+DELETE_DEST=0
+while getopts ":d" opt; do
+  case "$opt" in
+    d) DELETE_DEST=1 ;;
+    *) usage ;;
+  esac
+done
+shift $((OPTIND - 1))
 
 if [ $# -ne 2 ]; then
   usage
@@ -52,6 +62,9 @@ fi
 IFS='|' read -r SSH_USER SSH_HOST SSH_PORT _ <<<"$SSH_CONN"
 
 RSYNC_OPTS=("-a" "--info=progress2")
+if [ "$DELETE_DEST" -eq 1 ]; then
+  RSYNC_OPTS+=("--delete")
+fi
 RSYNC_SSH_CMD="ssh -p ${SSH_PORT} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=quiet"
 REMOTE_SPEC="${SSH_USER}@${SSH_HOST}:${REMOTE_PATH}"
 
