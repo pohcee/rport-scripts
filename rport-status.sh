@@ -14,8 +14,29 @@ if [ ! -f "$UTILS_FILE" ]; then
 fi
 source "$UTILS_FILE"
 
+usage() {
+    local exit_code="${1:-0}"
+    cat <<EOF
+Usage: $0 [-h|--help]
+  Fetch and display rport server status as JSON.
+  -h, --help  Show this help message.
+EOF
+    exit "$exit_code"
+}
+
 # --- Main Script ---
 main() {
+    case "${1:-}" in
+        -h|--help)
+            usage 0
+            ;;
+        "")
+            ;;
+        *)
+            usage 1
+            ;;
+    esac
+
     # Check for required environment variables
     [ -z "${RPORT_HOST:-}" ] && fail "RPORT_HOST environment variable not set."
     [ -z "${RPORT_CREDENTIALS:-}" ] && fail "RPORT_CREDENTIALS environment variable not set."

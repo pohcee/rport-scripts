@@ -4,7 +4,15 @@
 # It provides common utility functions for other rport scripts.
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    echo "This script should be sourced, not executed." >&2
+    if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+        cat <<EOF
+Usage: $0
+  Shared helper library for rport scripts.
+  This file is meant to be sourced by other scripts, not executed directly.
+EOF
+        exit 0
+    fi
+    echo "This script should be sourced, not executed. Use -h or --help for details." >&2
     exit 1
 fi
 

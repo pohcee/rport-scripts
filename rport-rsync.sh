@@ -4,26 +4,33 @@ set -e
 
 # Function to print usage and exit
 usage() {
+  local exit_code="${1:-1}"
   echo "Usage: $0 [-d] <source> <destination>"
   echo "  Sync files between local and a remote rport client using rsync over SSH."
   echo "  -d  Delete files in destination that do not exist in source."
+  echo "  -h, --help  Show this help message."
   echo "  Remote path must be specified as <client_name>:<path>"
   echo "  Example: $0 ./local-dir/ client-1:/remote/dir/"
   echo "  Example: $0 -d client-1:/remote/dir/ ./local-dir/"
-  exit 1
+  exit "$exit_code"
 }
 
 DELETE_DEST=0
-while getopts ":d" opt; do
+if [[ "${1:-}" == "--help" ]]; then
+  usage 0
+fi
+
+while getopts ":dh" opt; do
   case "$opt" in
     d) DELETE_DEST=1 ;;
-    *) usage ;;
+    h) usage 0 ;;
+    *) usage 1 ;;
   esac
 done
 shift $((OPTIND - 1))
 
 if [ $# -ne 2 ]; then
-  usage
+  usage 1
 fi
 
 SRC=$1

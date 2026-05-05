@@ -4,12 +4,24 @@ set -e
 
 VERBOSE=0
 
+usage() {
+  local exit_code="${1:-1}"
+  echo "Usage: $0 [-v|--verbose] [-h|--help] clientName [command]"
+  echo "  Open an SSH session (or run a command) on an rport client via tunnel."
+  echo "  -v, --verbose  Show verbose diagnostics."
+  echo "  -h, --help     Show this help message."
+  exit "$exit_code"
+}
+
 # Parse flags
 while [[ $# -gt 0 ]]; do
   case $1 in
     -v|--verbose)
       VERBOSE=1
       shift
+      ;;
+    -h|--help)
+      usage 0
       ;;
     *)
       break
@@ -18,8 +30,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [ $# -lt 1 ]; then
-  echo "Usage: $0 [-v|--verbose] clientName [command]"
-  exit 1
+  usage 1
 fi
 
 clientName=$1

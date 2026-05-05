@@ -4,16 +4,24 @@ set -euo pipefail
 
 # Function to print usage and exit
 usage() {
+  local exit_code="${1:-1}"
   echo "Usage: $0 <remote> <local_mount_point>"
   echo "  Mount a remote rport client directory locally via SSHFS."
+  echo "  -h, --help  Show this help message."
   echo "  Remote must be specified as <client_name>:/remote/path"
   echo "  Example: $0 client-1:/home/user /mnt/remote"
-  exit 1
+  exit "$exit_code"
 }
 
 main() {
+    case "${1:-}" in
+        -h|--help)
+            usage 0
+            ;;
+    esac
+
     if [ $# -ne 2 ]; then
-        usage
+        usage 1
     fi
 
     local remote_spec="$1"
@@ -21,7 +29,7 @@ main() {
 
     if ! [[ "$remote_spec" == *:* ]]; then
         echo "Error: Remote must be in the format <client_name>:/remote/path" >&2
-        usage
+      usage 1
     fi
 
     local client_name="${remote_spec%%:*}"

@@ -18,9 +18,17 @@ List all clients connected to the Rport server.
 
 ```
 $ rport-clients
-CLIENT_NAME       CLIENT_ID                                  HOSTNAME           HOST_USER  TUNNELS
-client-01         e0668077-d9b8-40aa-b5e6-420f38b05637        10.2.20.10         admin      1
-client-02         e0668077-d9b8-40aa-b5e6-420f38b05638        10.2.20.11         admin      0
+CLIENT_NAME       CLIENT_ID                                  STATUS   HOSTNAME    TUNNELS
+client-01         e0668077-d9b8-40aa-b5e6-420f38b05637       online   10.2.20.10  1
+client-02         e0668077-d9b8-40aa-b5e6-420f38b05638       offline  10.2.20.11  0
+
+$ rport-clients --status=online
+CLIENT_NAME       CLIENT_ID                                  STATUS   HOSTNAME    TUNNELS
+client-01         e0668077-d9b8-40aa-b5e6-420f38b05637       online   10.2.20.10  1
+
+$ rport-clients --status=offline
+CLIENT_NAME       CLIENT_ID                                  STATUS   HOSTNAME    TUNNELS
+client-02         e0668077-d9b8-40aa-b5e6-420f38b05638       offline  10.2.20.11  0
 ```
 
 ### rport-status

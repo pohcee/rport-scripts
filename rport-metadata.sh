@@ -15,13 +15,21 @@ fi
 source "$UTILS_FILE"
 
 usage() {
+    local exit_code="${1:-1}"
     echo "Usage: $0 <client_name>"
     echo "  Show metadata for the specified client as JSON."
-    exit 1
+    echo "  -h, --help  Show this help message."
+    exit "$exit_code"
 }
 
 # --- Main Script ---
 main() {
+    case "${1:-}" in
+        -h|--help)
+            usage 0
+            ;;
+    esac
+
     [ $# -ne 1 ] && usage
 
     local client_name="$1"

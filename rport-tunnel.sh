@@ -16,11 +16,27 @@ if [ ! -f "$UTILS_FILE" ]; then
 fi
 source "$UTILS_FILE"
 
+usage() {
+    local exit_code="${1:-1}"
+    cat <<EOF
+Usage: $0 <client_name> [remote_port]
+  Create or reuse an SSH tunnel for an rport client.
+  On success, prints: <ssh-user>|<rport-host>|<tunnel-port>
+  -h, --help  Show this help message.
+EOF
+    exit "$exit_code"
+}
+
 # --- Main Script ---
 main() {
+    case "${1:-}" in
+        -h|--help)
+            usage 0
+            ;;
+    esac
+
     if [ $# -lt 1 ] || [ $# -gt 2 ]; then
-        echo "Usage: $0 <client_name> [remote_port]" >&2
-        exit 1
+        usage 1 >&2
     fi
     local client_name="$1"
     local remote_port="${2:-22}"

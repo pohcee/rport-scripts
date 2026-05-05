@@ -4,16 +4,22 @@ set -e
  
 # Function to print usage and exit
 usage() {
+  local exit_code="${1:-1}"
   echo "Usage: $0 <source> <destination>"
   echo "  Copy files between local and a remote rport client."
+  echo "  -h, --help  Show this help message."
   echo "  Remote path must be specified as <client_name>:<path>"
   echo "  Example: $0 local.txt client-1:/remote/path/local.txt"
   echo "  Example: $0 client-1:/remote/path/file.txt /local/path/"
-  exit 1
+  exit "$exit_code"
 }
 
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  usage 0
+fi
+
 if [ $# -ne 2 ]; then
-  usage
+  usage 1
 fi
 
 SRC=$1
