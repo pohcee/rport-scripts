@@ -53,7 +53,7 @@ main() {
     local remote_fs_spec="${ssh_user}@${ssh_host}:${remote_path}"
     local sshfs_opts=("-p" "$ssh_port" "-o" "UserKnownHostsFile=/dev/null" "-o" "StrictHostKeyChecking=no" "-o" "LogLevel=quiet" "-o" "reconnect" "-o" "ServerAliveInterval=15")
 
-    echo "sshfs: mounting ${client_name}:${remote_path} to ${local_mount_point}"
+    echo "sshfs: mounting ${client_name}:${remote_path} to ${local_mount_point}" >&2
     sshfs "${sshfs_opts[@]}" "${remote_fs_spec}" "${local_mount_point}"
 }
 

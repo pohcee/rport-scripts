@@ -76,9 +76,9 @@ RSYNC_SSH_CMD="ssh -p ${SSH_PORT} -o UserKnownHostsFile=/dev/null -o StrictHostK
 REMOTE_SPEC="${SSH_USER}@${SSH_HOST}:${REMOTE_PATH}"
 
 if [ "$REMOTE_TO_LOCAL" -eq 1 ]; then
-  echo "rsync: syncing from ${CLIENT_NAME}:${REMOTE_PATH} to ${LOCAL_PATH}"
+  echo "rsync: syncing from ${CLIENT_NAME}:${REMOTE_PATH} to ${LOCAL_PATH}" >&2
   rsync "${RSYNC_OPTS[@]}" -e "${RSYNC_SSH_CMD}" "${REMOTE_SPEC}" "${LOCAL_PATH}"
 else
-  echo "rsync: syncing from ${LOCAL_PATH} to ${CLIENT_NAME}:${REMOTE_PATH}"
+  echo "rsync: syncing from ${LOCAL_PATH} to ${CLIENT_NAME}:${REMOTE_PATH}" >&2
   rsync "${RSYNC_OPTS[@]}" -e "${RSYNC_SSH_CMD}" "${LOCAL_PATH}" "${REMOTE_SPEC}"
 fi

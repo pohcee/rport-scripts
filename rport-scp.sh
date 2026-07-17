@@ -61,9 +61,9 @@ SCP_OPTS=("-r" "-P" "$SSH_PORT" "-o" "UserKnownHostsFile=/dev/null" "-o" "Strict
 REMOTE_SPEC="${SSH_USER}@${SSH_HOST}:${REMOTE_PATH}"
 
 if [ "$REMOTE_TO_LOCAL" -eq 1 ]; then
-  echo "scp: copying from ${CLIENT_NAME}:${REMOTE_PATH} to ${LOCAL_PATH}"
+  echo "scp: copying from ${CLIENT_NAME}:${REMOTE_PATH} to ${LOCAL_PATH}" >&2
   scp "${SCP_OPTS[@]}" "${REMOTE_SPEC}" "${LOCAL_PATH}"
 else
-  echo "scp: copying from ${LOCAL_PATH} to ${CLIENT_NAME}:${REMOTE_PATH}"
+  echo "scp: copying from ${LOCAL_PATH} to ${CLIENT_NAME}:${REMOTE_PATH}" >&2
   scp "${SCP_OPTS[@]}" "${LOCAL_PATH}" "${REMOTE_SPEC}"
 fi
