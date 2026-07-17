@@ -64,7 +64,7 @@ SSH_PATH=ssh://${SSH_DETAILS[0]}@${SSH_DETAILS[1]}:${SSH_DETAILS[2]}
 [ $VERBOSE -eq 1 ] && echo "[verbose] SSH path: $SSH_PATH"
 [ $VERBOSE -eq 1 ] && echo "[verbose] User: ${SSH_DETAILS[0]}, Host: ${SSH_DETAILS[1]}, Port: ${SSH_DETAILS[2]}"
 
-echo ssh: connecting to "$clientName" via "$SSH_PATH"
+echo ssh: connecting to "$clientName" via "$SSH_PATH" >&2
 # Since the host/port is reused for the tunnel, we skip host checks
 if [ $VERBOSE -eq 1 ]; then
   ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=verbose "$SSH_PATH" "$@"
