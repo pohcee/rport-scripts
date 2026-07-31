@@ -116,6 +116,12 @@ Create a tunnel to a client connected to the Rport server. The optional second a
 $ rport-tunnel client-01 3389
 ```
 
+Pass a third argument to instead forward through the client to another host reachable on its network (e.g. a device on its LAN), rather than to the client itself:
+
+```
+$ rport-tunnel client-01 104 192.168.1.50
+```
+
 ## Contributing
 
 Pull requests are welcome. Please open an issue first to discuss what you would like to change.
