@@ -17,7 +17,8 @@
   "homepage": "https://github.com/pohcee/rport-scripts#readme",
   "release-it": {
     "github": {
-      "release": true
+      "release": true,
+      "autoGenerate": true
     },
     "npm": {
       "publish": false
