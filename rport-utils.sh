@@ -16,6 +16,10 @@ EOF
     exit 1
 fi
 
+# Make `set -e` apply inside command substitutions too, so a `fail` in a helper
+# called as $(func) stops the script instead of continuing with empty output.
+shopt -s inherit_errexit 2>/dev/null || true
+
 # --- Helper Functions ---
 
 # A function to print error messages to stderr and exit.
@@ -29,6 +33,17 @@ urlencode() {
     echo -n "$1" | jq -sRr @uri
 }
 
+# Fail immediately on HTTP codes where retrying or falling back can't help.
+# Each failed attempt counts toward the server's brute-force ban, so callers
+# must not issue further requests after a 401 or 429.
+rport_check_fatal_status() {
+    local http_code="$1"
+    case "$http_code" in
+        401) fail "Authentication failed (HTTP 401). Check RPORT_CREDENTIALS." ;;
+        429) fail "Rate limited / temporarily banned (HTTP 429). Wait before retrying." ;;
+    esac
+}
+
 # A function to make authenticated API calls to rport.
 # Returns the response body. On HTTP errors, prints error details and fails.
 rport_api() {
@@ -40,6 +55,7 @@ rport_api() {
     http_code=$(tail -n1 <<<"$response")
     local body
     body=$(sed '$ d' <<<"$response")
+    rport_check_fatal_status "$http_code"
     if [[ "$http_code" -lt 200 || "$http_code" -ge 300 ]]; then
         local err_msg
         err_msg=$(echo "$body" | jq -r '.error.text // .')
@@ -48,7 +64,8 @@ rport_api() {
     echo "$body"
 }
 
-# A function to make authenticated API calls to rport without failing on errors.
+# A function to make authenticated API calls to rport without failing on errors
+# (except 401/429, see rport_check_fatal_status).
 # Returns both the HTTP status code and response body separated by newline.
 # First line: HTTP status code
 # Remaining lines: response body
@@ -57,6 +74,7 @@ rport_api_raw() {
     local endpoint="$2"
     local response
     response=$(curl -s -X "$method" -w "\n%{http_code}" -u "${RPORT_CREDENTIALS}" "${RPORT_URL_ROOT}${endpoint}")
+    rport_check_fatal_status "$(tail -n1 <<<"$response")"
     echo "$response"
 }
 
