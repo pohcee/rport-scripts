@@ -141,14 +141,18 @@ main() {
             tunnel_info_json=$(echo "${tunnel_response}" | jq '.data')
         fi
     fi
-    local lport
+    local lport tunnel_host
     lport=$(echo "${tunnel_info_json}" | jq -r '.lport')
+    # On a cluster the tunnel listens on the node holding the device (tunnel_host), not on the API host behind the
+    # load balancer; a standalone server leaves tunnel_host empty.
+    tunnel_host=$(echo "${tunnel_info_json}" | jq -r '.tunnel_host // empty')
+    [ -z "${tunnel_host}" ] && tunnel_host="${RPORT_HOST}"
 
     # 6. Print the connection details for other scripts to use
     if [ -n "${remote_host}" ]; then
-        echo "${RPORT_HOST}|${lport}"
+        echo "${tunnel_host}|${lport}"
     else
-        echo "${ssh_user}|${RPORT_HOST}|${lport}"
+        echo "${ssh_user}|${tunnel_host}|${lport}"
     fi
 }
 
