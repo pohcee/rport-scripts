@@ -62,6 +62,7 @@ assert_contains "rport-clients falls back to RPORT_CREDENTIALS" "$CURL_LOG" "-u 
 assert_contains "rport-clients falls back to RPORT_HOST" "$CURL_LOG" "https://old.example/api/v1/clients"
 assert_eq "rport-clients --json stdout is byte-identical to procy-clients --json" "$NEW_JSON_OUT" "$(cat "${WORK}/out")"
 assert_eq "rport-clients prints nothing on stderr when stderr is not a terminal" "" "$ERR"
+assert_eq "rport-clients --json stdout is exactly the API body (golden)" "$(cat "${ROOT}/test/fixtures/clients.json")" "$OUT"
 
 run "${OLD[@]}" "${ROOT}/procy-clients.sh" --json
 assert_eq "procy-clients works with RPORT_* only" 0 "$RC"
@@ -97,6 +98,7 @@ NEW_TUNNEL_OUT="$(cat "${WORK}/out")"
 run "${OLD[@]}" STUB_TUNNEL_HOST=node2.example "${ROOT}/rport-tunnel.sh" dev1
 assert_eq "rport-tunnel stdout is byte-identical to procy-tunnel" "$NEW_TUNNEL_OUT" "$(cat "${WORK}/out")"
 assert_eq "rport-tunnel prints nothing on stderr when stderr is not a terminal" "" "$ERR"
+assert_eq "rport-tunnel stdout is exactly user|host|port (golden)" "admin|node2.example|20001" "$OUT"
 
 # Standalone server: no tunnel_host, use the API host.
 run "${NEW[@]}" "${ROOT}/procy-tunnel.sh" dev1
@@ -119,6 +121,8 @@ assert_eq "procy-tunnel remote_host prints host|port" "node3.example|20002" "$OU
 NEW_REMOTE_OUT="$(cat "${WORK}/out")"
 run "${OLD[@]}" STUB_NO_TUNNELS=1 STUB_TUNNEL_HOST=node3.example "${ROOT}/rport-tunnel.sh" dev1 104 192.168.1.50
 assert_eq "rport-tunnel remote_host stdout is byte-identical" "$NEW_REMOTE_OUT" "$(cat "${WORK}/out")"
+assert_eq "rport-tunnel remote_host stdout is exactly host|port (golden)" "node3.example|20002" "$OUT"
+assert_contains "remote_host mode PUTs remote=host:port, scheme=other, the ACL and a 60 min idle timeout" "$CURL_LOG" "PUT https://old.example/api/v1/clients/c1/tunnels?remote=192.168.1.50%3A104&scheme=other&acl=203.0.113.9&idle-timeout-minutes=60&protocol=tcp"
 
 echo "# ssh / scp"
 run "${NEW[@]}" STUB_TUNNEL_HOST=node2.example "${ROOT}/procy-ssh.sh" dev1 uptime
@@ -132,10 +136,33 @@ run "${NEW[@]}" STUB_CLIENT_STATE=disconnected "${ROOT}/procy-ssh.sh" dev1 uptim
 assert_eq "procy-ssh fails when the tunnel fails" 1 "$RC"
 assert_contains "procy-ssh failure keeps its message" "$OUT" "Error: Failed to establish tunnel for client 'dev1'"
 assert_contains "procy-ssh failure shows the root cause" "$OUT" "Client dev1 is not connected."
+run "${OLD[@]}" STUB_CLIENT_STATE=disconnected "${ROOT}/rport-ssh.sh" dev1 uptime
+assert_eq "rport-ssh fails when the tunnel fails" 1 "$RC"
+assert_eq "rport-ssh failure stdout starts with the line release tooling matches (golden)" \
+    "Error: Failed to establish tunnel for client 'dev1'" "$(head -n1 <<<"$OUT")"
+
+# Scripts copied (not symlinked) into a bin dir without their .sh suffix still find each other.
+CBIN="${WORK}/copied-bin"
+mkdir -p "${CBIN}"
+for f in "${ROOT}"/procy-*.sh "${ROOT}"/rport-*.sh; do
+    b="$(basename "$f" .sh)"
+    if [[ "$b" == *-utils ]]; then cp "$f" "${CBIN}/${b}.sh"; else install -m 755 "$f" "${CBIN}/${b}"; fi
+done
+run "${OLD[@]}" PATH="${CBIN}:${STUBS}:/usr/bin:/bin" rport-ssh dev1 uptime
+assert_contains "copied rport-ssh (no .sh) reaches procy-ssh and procy-tunnel" "$SSH_LOG" "ssh://admin@old.example:20001 uptime"
 
 run "${OLD[@]}" STUB_TUNNEL_HOST=node2.example "${ROOT}/rport-scp.sh" dev1:/etc/hosts "${WORK}/x"
 assert_contains "rport-scp copies via the tunnel_host" "$SSH_LOG" "scp -r -P 20001"
 assert_contains "rport-scp remote spec" "$SSH_LOG" "admin@node2.example:/etc/hosts"
+run "${NEW[@]}" "${ROOT}/procy-scp.sh" "${WORK}/x" dev1:/tmp/
+assert_contains "procy-scp copies local to remote" "$SSH_LOG" "${WORK}/x admin@new.example:/tmp/"
+run "${NEW[@]}" "${ROOT}/procy-rsync.sh" -d dev1:/data/ "${WORK}/d/"
+assert_contains "procy-rsync syncs over ssh on the tunnel port" "$SSH_LOG" "rsync -a --info=progress2 --delete -e ssh -p 20001"
+assert_contains "procy-rsync remote spec" "$SSH_LOG" "admin@new.example:/data/ ${WORK}/d/"
+mkdir -p "${WORK}/mnt"
+run "${NEW[@]}" STUB_TUNNEL_HOST=node2.example "${ROOT}/procy-sshfs.sh" dev1:/home "${WORK}/mnt"
+assert_contains "procy-sshfs mounts via the tunnel_host" "$SSH_LOG" "sshfs -p 20001"
+assert_contains "procy-sshfs remote spec" "$SSH_LOG" "admin@node2.example:/home ${WORK}/mnt"
 
 echo "# status / metadata"
 run "${NEW[@]}" "${ROOT}/procy-status.sh"

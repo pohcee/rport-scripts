@@ -5,6 +5,8 @@ set -e
 # procy-tunnel is called from this script's own directory (symlinks resolved), so it works whichever
 # command names (procy-* or the legacy rport-*) are on PATH.
 PROCY_TUNNEL="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/procy-tunnel.sh"
+[ -x "$PROCY_TUNNEL" ] || PROCY_TUNNEL="${PROCY_TUNNEL%.sh}"   # scripts copied into a bin dir without .sh
+[ -x "$PROCY_TUNNEL" ] || PROCY_TUNNEL=procy-tunnel           # else whatever is on PATH
 
 VERBOSE=0
 
