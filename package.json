@@ -1,20 +1,21 @@
 {
-  "name": "@pohcee/rport-scripts",
+  "name": "@pohcee/procy-cli",
   "version": "1.0.15",
-  "description": "A group of bash and python helper scripts with integrated command line completion that target a Procy (rport) server. Sometimes it's just better to do things via the CLI.",
+  "description": "Procy command line: bash helper scripts (procy-ssh, procy-scp, procy-tunnel, ...) with integrated command line completion that target a Procy server. Sometimes it's just better to do things via the CLI.",
   "scripts": {
-    "release": "release-it --ci"
+    "release": "release-it --ci",
+    "test": "bash test/run.sh"
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/pohcee/rport-scripts.git"
+    "url": "git+ssh://git@github.com/pohcee/procy-cli.git"
   },
   "author": "Jason Klotzer",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/pohcee/rport-scripts/issues"
+    "url": "https://github.com/pohcee/procy-cli/issues"
   },
-  "homepage": "https://github.com/pohcee/rport-scripts#readme",
+  "homepage": "https://github.com/pohcee/procy-cli#readme",
   "release-it": {
     "github": {
       "release": true,

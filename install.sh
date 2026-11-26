@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# A robust installer for rport-scripts.
-# It checks prerequisites, installs scripts to a local bin directory,
+# A robust installer for procy-cli.
+# It checks prerequisites, installs the procy-* commands (plus the deprecated rport-* compatibility
+# names) to a local bin directory,
 # and helps configure the shell environment.
 
 set -euo pipefail
@@ -29,7 +30,7 @@ main() {
     local SRC_DIR
     SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-    info "Starting rport-scripts installation..."
+    info "Starting procy-cli installation..."
     echo
 
     # 1. Check for required commands
@@ -46,20 +47,26 @@ main() {
     mkdir -p "${BIN_DIR}"
     echo
 
-    # 3. Install the scripts by creating symbolic links
+    # 3. Install the scripts by creating symbolic links: the procy-* commands, then the deprecated rport-*
+    # compatibility names (thin wrappers that exec the procy-* command), so existing callers keep working.
     info "Installing scripts..."
-    for script_path in "${SRC_DIR}"/rport-*.sh; do
+    local script_path
+    for script_path in "${SRC_DIR}"/procy-*.sh "${SRC_DIR}"/rport-*.sh; do
         if [ -f "${script_path}" ]; then
             local script_filename
             script_filename=$(basename "${script_path}")
             # Don't install utility scripts as commands
-            if [[ "${script_filename}" == "rport-utils.sh" ]]; then
+            if [[ "${script_filename}" == "procy-utils.sh" || "${script_filename}" == "rport-utils.sh" ]]; then
                 continue
             fi
             local command_name="${script_filename%.sh}"
             chmod +x "${script_path}"
-            ln -sf "${script_path}" "${BIN_DIR}/${command_name}"
-            info "  - Installed '${command_name}'"
+            ln -sfn "${script_path}" "${BIN_DIR}/${command_name}"
+            if [[ "${command_name}" == rport-* ]]; then
+                info "  - Installed '${command_name}' (deprecated alias of 'procy-${command_name#rport-}')"
+            else
+                info "  - Installed '${command_name}'"
+            fi
         fi
     done
     echo
@@ -79,7 +86,7 @@ main() {
     if [ -n "${shell_profile}" ] && [ -f "${shell_profile}" ]; then
         local completion_line="source '${SRC_DIR}/completion.sh'"
         if ! grep -qF -- "${completion_line}" "${shell_profile}"; then
-            printf "\n# rport-scripts shell completion\n%s\n" "${completion_line}" >> "${shell_profile}"
+            printf "\n# procy-cli shell completion\n%s\n" "${completion_line}" >> "${shell_profile}"
             info "Completion script added to '${shell_profile}'."
         fi
     fi
@@ -93,10 +100,13 @@ main() {
         echo "  - Your PATH does not include '${BIN_DIR}'. Add this to your shell profile:"
         echo "    export PATH=\"${BIN_DIR}:\$PATH\""
     fi
-    if [ -z "${RPORT_HOST:-}" ] || [ -z "${RPORT_CREDENTIALS:-}" ]; then
-        echo "  - Set RPORT environment variables in your shell profile:"
-        echo "    export RPORT_HOST=rport.yourcompany.com"
-        echo "    export RPORT_CREDENTIALS=youruser:yourpassword"
+    if [ -z "${PROCY_HOST:-${RPORT_HOST:-}}" ] || [ -z "${PROCY_CREDENTIALS:-${RPORT_CREDENTIALS:-}}" ]; then
+        echo "  - Set the Procy environment variables in your shell profile:"
+        echo "    export PROCY_HOST=procy.yourcompany.com"
+        echo "    export PROCY_CREDENTIALS=youruser:yourpassword"
+    elif [ -z "${PROCY_HOST:-}" ] || [ -z "${PROCY_CREDENTIALS:-}" ]; then
+        echo "  - RPORT_HOST / RPORT_CREDENTIALS still work, but consider renaming them in your shell profile"
+        echo "    to PROCY_HOST / PROCY_CREDENTIALS."
     fi
     echo "  - For all changes to take effect, start a new shell or run: source ${shell_profile:-~/.bashrc}"
     echo

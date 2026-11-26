@@ -1,0 +1,1 @@
+{"data":[{"id":"c1","name":"dev1","hostname":"dev1.lan","disconnected_at":null,"tunnels":[]},{"id":"c2","name":"dev2","hostname":"dev2.lan","disconnected_at":"2026-11-01T00:00:00Z","tunnels":[]}],"meta":{"count":2}}

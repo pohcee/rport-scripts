@@ -1,58 +1,11 @@
 #!/bin/bash
-
-# Fetches and displays the status of the rport server.
-
-set -euo pipefail
-
-# Source the utility functions
-# readlink -f resolves symlinks to find the true script directory
-SCRIPT_DIR=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
-UTILS_FILE="${SCRIPT_DIR}/rport-utils.sh"
-if [ ! -f "$UTILS_FILE" ]; then
-    echo "Error: Missing rport-utils.sh. It should be in the same directory as the script." >&2
-    exit 1
-fi
-source "$UTILS_FILE"
-
-usage() {
-    local exit_code="${1:-0}"
-    cat <<EOF
-Usage: $0 [-h|--help]
-  Fetch and display rport server status as JSON.
-  -h, --help  Show this help message.
-EOF
-    exit "$exit_code"
-}
-
-# --- Main Script ---
-main() {
-    case "${1:-}" in
-        -h|--help)
-            usage 0
-            ;;
-        "")
-            ;;
-        *)
-            usage 1
-            ;;
-    esac
-
-    # Check for required environment variables
-    [ -z "${RPORT_HOST:-}" ] && fail "RPORT_HOST environment variable not set."
-    [ -z "${RPORT_CREDENTIALS:-}" ] && fail "RPORT_CREDENTIALS environment variable not set."
-
-    # Check for required commands
-    command -v jq >/dev/null || fail "'jq' is required but not installed. Please install it."
-    command -v curl >/dev/null || fail "'curl' is required but not installed. Please install it."
-
-    readonly RPORT_URL_ROOT="https://${RPORT_HOST}/api/v1"
-
-    local body
-    body=$(rport_api "GET" "/status")
-   
-    # The API returns the status object inside a "data" key.
-    # We extract and pretty-print it with jq, which matches the README example.
-    echo "$body" | jq '.data'
-}
-
-main "$@"
+# Deprecated compatibility name: rport-status is now procy-status. This wrapper keeps existing callers working.
+# The notice goes to stderr and only when stderr is a terminal, so captured output stays byte-identical.
+[ -t 2 ] && echo "rport-status is deprecated; use procy-status (same arguments and output)." >&2
+# Run procy-status from this script's directory (symlinks resolved): procy-status.sh in a checkout, procy-status when the
+# scripts were copied into a bin directory without their suffix; else whatever procy-status is on PATH.
+dir="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+for target in "${dir}/procy-status.sh" "${dir}/procy-status"; do
+    [ -x "${target}" ] && exec "${target}" "$@"
+done
+exec procy-status "$@"

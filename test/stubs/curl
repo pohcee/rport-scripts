@@ -1,0 +1,44 @@
+#!/bin/bash
+# curl stub for the tests: logs "<METHOD> <URL> -u <credentials>" to $STUB_LOG_DIR/curl.log and answers from fixtures.
+# Knobs: STUB_HTTP_CODE (default 200), STUB_CLIENT_STATE (default connected), STUB_NO_TUNNELS=1 (client has no
+# tunnels), STUB_TUNNEL_HOST (tunnel_host on tunnels; "null" for JSON null; unset to omit the field).
+FIXTURES="$(dirname "$(readlink -f "$0")")/../fixtures"
+method=GET creds="" url="" want_code=0
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -X) method="$2"; shift ;;
+        -u) creds="$2"; shift ;;
+        -w) want_code=1; shift ;;
+        -s) ;;
+        *) url="$1" ;;
+    esac
+    shift
+done
+echo "${method} ${url} -u ${creds}" >>"${STUB_LOG_DIR}/curl.log"
+
+if [ "${url}" == "https://checkip.amazonaws.com" ]; then
+    echo "203.0.113.9"
+    exit 0
+fi
+
+th=""
+if [ -n "${STUB_TUNNEL_HOST+x}" ]; then
+    if [ "${STUB_TUNNEL_HOST}" == "null" ]; then th=',"tunnel_host":null'; else th=",\"tunnel_host\":\"${STUB_TUNNEL_HOST}\""; fi
+fi
+path="${url#https://*/api/v1}"
+case "${method} ${path}" in
+    "GET /clients"|"GET /clients?sort=name"*) body="$(cat "${FIXTURES}/clients.json")" ;;
+    "GET /clients?filter%5Bname%5D=dev1") body='{"data":[{"id":"c1","name":"dev1"}]}' ;;
+    "GET /clients/c1")
+        tunnels="[{\"id\":\"t1\",\"lport\":\"20001\",\"rport\":\"22\"${th}}]"
+        [ -n "${STUB_NO_TUNNELS:-}" ] && tunnels="[]"
+        body="{\"data\":{\"id\":\"c1\",\"name\":\"dev1\",\"connection_state\":\"${STUB_CLIENT_STATE:-connected}\",\"tunnels\":${tunnels}}}" ;;
+    "PUT /clients/c1/tunnels?"*) body="{\"data\":{\"id\":\"t2\",\"lport\":\"20002\",\"rport\":\"2222\"${th}}}" ;;
+    "GET /vault?filter%5Bclient_id%5D=c1") body='{"data":[{"id":7,"key":"ssh-user"}]}' ;;
+    "GET /vault/7") body='{"data":{"value":"admin"}}' ;;
+    "GET /status") body='{"data":{"version":"0.16.1"}}' ;;
+    *) body='{"error":{"text":"not found"}}'; STUB_HTTP_CODE=404 ;;
+esac
+printf '%s' "${body}"
+[ "${want_code}" -eq 1 ] && printf '\n%s' "${STUB_HTTP_CODE:-200}"
+exit 0
