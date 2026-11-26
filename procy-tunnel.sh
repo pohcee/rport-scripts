@@ -1,40 +1,41 @@
 #!/bin/bash
 
-# Creates or reuses a tunnel for a given rport client.
+# Creates or reuses a tunnel for a given Procy client.
 #
 # With no remote_host, creates an SSH tunnel to the client itself.
 # On success, it prints the connection details pipe-separated:
-# <ssh-user>|<rport-host>|<tunnel-port>
+# <ssh-user>|<tunnel-host>|<tunnel-port>
 #
 # With remote_host, forwards through the client to another host reachable
 # on the client's network (e.g. a device on its LAN).
 # On success, it prints the connection details pipe-separated:
-# <rport-host>|<tunnel-port>
+# <tunnel-host>|<tunnel-port>
 
 set -euo pipefail
 
 # Source the utility functions
 # readlink -f resolves symlinks to find the true script directory
 SCRIPT_DIR=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
-UTILS_FILE="${SCRIPT_DIR}/rport-utils.sh"
+UTILS_FILE="${SCRIPT_DIR}/procy-utils.sh"
 if [ ! -f "$UTILS_FILE" ]; then
-    echo "Error: Missing rport-utils.sh. It should be in the same directory as the script." >&2
+    echo "Error: Missing procy-utils.sh. It should be in the same directory as the script." >&2
     exit 1
 fi
+# shellcheck source=procy-utils.sh
 source "$UTILS_FILE"
 
 usage() {
     local exit_code="${1:-1}"
     cat <<EOF
 Usage: $0 <client_name> [remote_port] [remote_host]
-  Create or reuse a tunnel for an rport client.
+  Create or reuse a tunnel for a Procy client.
 
   With no remote_host, creates an SSH tunnel to the client itself:
-    prints: <ssh-user>|<rport-host>|<tunnel-port>
+    prints: <ssh-user>|<tunnel-host>|<tunnel-port>
 
   With remote_host, forwards through the client to another host reachable
   on the client's network (e.g. a device on its LAN):
-    prints: <rport-host>|<tunnel-port>
+    prints: <tunnel-host>|<tunnel-port>
 
   remote_port defaults to 22.
   -h, --help  Show this help message.
@@ -76,29 +77,27 @@ main() {
     [[ "${remote_port}" =~ ^[0-9]+$ ]] || fail "Invalid remote_port '${remote_port}': must be an integer between 1 and 65535."
     [ "${remote_port}" -ge 1 ] && [ "${remote_port}" -le 65535 ] || fail "Invalid remote_port '${remote_port}': must be between 1 and 65535."
 
-    # Check for required environment variables
-    [ -z "${RPORT_HOST:-}" ] && fail "RPORT_HOST environment variable not set."
-    [ -z "${RPORT_CREDENTIALS:-}" ] && fail "RPORT_CREDENTIALS environment variable not set."
+    # Check for required environment variables (PROCY_*, falling back to legacy RPORT_*)
+    procy_require_env
 
     # Check for required commands
     command -v jq >/dev/null || fail "'jq' is required but not installed. Please install it."
     command -v curl >/dev/null || fail "'curl' is required but not installed. Please install it."
 
-    readonly RPORT_URL_ROOT="https://${RPORT_HOST}/api/v1"
 
     # 1. Get the client id from the name
     local client_id
-    client_id=$(rport_get_client_id_by_name "${client_name}")
+    client_id=$(procy_get_client_id_by_name "${client_name}")
 
     # 2. Get client info and check connection state
     local client_info_json
-    client_info_json=$(rport_api "GET" "/clients/${client_id}")
+    client_info_json=$(procy_api "GET" "/clients/${client_id}")
     [ "$(echo "${client_info_json}" | jq -r '.data.connection_state')" != "connected" ] && fail "Client ${client_name} is not connected."
 
     # 3. Get the ssh-user from the vault (only needed when tunneling to the client itself)
     local ssh_user=""
     if [ -z "${remote_host}" ]; then
-        ssh_user=$(rport_get_client_vault_value_by_key "${client_id}" "ssh-user")
+        ssh_user=$(procy_get_client_vault_value_by_key "${client_id}" "ssh-user")
     fi
 
     # 4. Determine the tunnel target: the client itself (scheme=ssh) or a host
@@ -121,7 +120,7 @@ main() {
         [ -z "${my_ip}" ] && fail "Could not determine public IP address."
 
         local tunnel_response_raw
-        tunnel_response_raw=$(rport_api_raw "PUT" "/clients/${client_id}/tunnels?remote=$(urlencode "${remote_param}")&scheme=${scheme}&acl=${my_ip}&idle-timeout-minutes=${idle_timeout_minutes}&protocol=tcp")
+        tunnel_response_raw=$(procy_api_raw "PUT" "/clients/${client_id}/tunnels?remote=$(urlencode "${remote_param}")&scheme=${scheme}&acl=${my_ip}&idle-timeout-minutes=${idle_timeout_minutes}&protocol=tcp")
         local http_code
         http_code=$(tail -n1 <<<"$tunnel_response_raw")
         local tunnel_response
@@ -130,7 +129,7 @@ main() {
         # If tunnel already exists, fetch it instead of treating it as an error
         if [ "$http_code" -eq 400 ] && echo "${tunnel_response}" | jq -e '.errors[] | select(.code == "ERR_CODE_TUNNEL_TO_PORT_EXIST")' >/dev/null 2>&1; then
             # Tunnel already exists, fetch fresh client info and get the tunnel
-            client_info_json=$(rport_api "GET" "/clients/${client_id}")
+            client_info_json=$(procy_api "GET" "/clients/${client_id}")
             tunnel_info_json=$(find_tunnel "${client_info_json}" "${remote_port}" "${remote_host}")
             [ -z "${tunnel_info_json}" ] && fail "Tunnel to ${remote_param} exists but could not retrieve its details."
         elif [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
@@ -144,9 +143,9 @@ main() {
     local lport tunnel_host
     lport=$(echo "${tunnel_info_json}" | jq -r '.lport')
     # On a cluster the tunnel listens on the node holding the device (tunnel_host), not on the API host behind the
-    # load balancer; a standalone server leaves tunnel_host empty.
+    # load balancer; a standalone server leaves tunnel_host empty, so fall back to the API host (PROCY_HOST).
     tunnel_host=$(echo "${tunnel_info_json}" | jq -r '.tunnel_host // empty')
-    [ -z "${tunnel_host}" ] && tunnel_host="${RPORT_HOST}"
+    [ -z "${tunnel_host}" ] && tunnel_host="${PROCY_HOST}"
 
     # 6. Print the connection details for other scripts to use
     if [ -n "${remote_host}" ]; then

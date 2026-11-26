@@ -2,12 +2,16 @@
 
 set -e
 
+# procy-tunnel is called from this script's own directory (symlinks resolved), so it works whichever
+# command names (procy-* or the legacy rport-*) are on PATH.
+PROCY_TUNNEL="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/procy-tunnel.sh"
+
 VERBOSE=0
 
 usage() {
   local exit_code="${1:-1}"
   echo "Usage: $0 [-v|--verbose] [-h|--help] clientName [command]"
-  echo "  Open an SSH session (or run a command) on an rport client via tunnel."
+  echo "  Open an SSH session (or run a command) on a Procy client via tunnel."
   echo "  -v, --verbose  Show verbose diagnostics."
   echo "  -h, --help     Show this help message."
   exit "$exit_code"
@@ -38,14 +42,14 @@ shift
 
 [ $VERBOSE -eq 1 ] && echo "[verbose] Getting tunnel for client: $clientName"
 
-if SSH_CONN=$(rport-tunnel "$clientName" 2>&1); then
+if SSH_CONN=$("$PROCY_TUNNEL" "$clientName" 2>&1); then
   :
 else
   TUNNEL_EXIT_CODE=$?
   echo "Error: Failed to establish tunnel for client '$clientName'"
   if [ $VERBOSE -eq 1 ]; then
-    echo "[verbose] rport-tunnel exit code: $TUNNEL_EXIT_CODE"
-    echo "[verbose] rport-tunnel output: $SSH_CONN"
+    echo "[verbose] procy-tunnel exit code: $TUNNEL_EXIT_CODE"
+    echo "[verbose] procy-tunnel output: $SSH_CONN"
   else
     ROOT_CAUSE=$(printf '%s\n' "$SSH_CONN" | grep '❌ Error:' | tail -n1)
     if [ -z "$ROOT_CAUSE" ]; then
@@ -58,7 +62,7 @@ fi
 
 [ $VERBOSE -eq 1 ] && echo "[verbose] Tunnel established: $SSH_CONN"
 
-SSH_DETAILS=(${SSH_CONN//|/ })
+IFS='|' read -r -a SSH_DETAILS <<<"$SSH_CONN"
 SSH_PATH=ssh://${SSH_DETAILS[0]}@${SSH_DETAILS[1]}:${SSH_DETAILS[2]}
 
 [ $VERBOSE -eq 1 ] && echo "[verbose] SSH path: $SSH_PATH"

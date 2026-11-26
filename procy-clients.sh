@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Lists rport clients.
+# Lists Procy clients.
 # By default, it prints a human-readable table including online/offline status.
 # With --json or --nostatus, it prints the raw JSON from the API for scripting.
 
@@ -9,18 +9,19 @@ set -euo pipefail
 # Source the utility functions
 # readlink -f resolves symlinks to find the true script directory
 SCRIPT_DIR=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
-UTILS_FILE="${SCRIPT_DIR}/rport-utils.sh"
+UTILS_FILE="${SCRIPT_DIR}/procy-utils.sh"
 if [ ! -f "$UTILS_FILE" ]; then
-    echo "Error: Missing rport-utils.sh. It should be in the same directory as the script." >&2
+    echo "Error: Missing procy-utils.sh. It should be in the same directory as the script." >&2
     exit 1
 fi
+# shellcheck source=procy-utils.sh
 source "$UTILS_FILE"
 
 usage() {
     local exit_code="${1:-0}"
     printf '%s\n' \
         "Usage: $0 [--json|--nostatus] [--status=online|offline] [-h|--help]" \
-        "  List rport clients." \
+        "  List Procy clients." \
         "  By default, output is a human-readable table with online/offline status." \
         "" \
         "Options:" \
@@ -63,7 +64,7 @@ fetch_clients_for_table() {
     # Fallback to plain /clients if the server rejects requested fields.
     local endpoint="/clients?sort=name&fields%5Bclients%5D=id,name,hostname,disconnected_at,tunnels&page%5Blimit%5D=500&page%5Boffset%5D=0"
     local response_raw http_code body
-    response_raw=$(rport_api_raw "GET" "$endpoint")
+    response_raw=$(procy_api_raw "GET" "$endpoint")
     http_code=$(tail -n1 <<<"$response_raw")
     body=$(sed '$ d' <<<"$response_raw")
 
@@ -72,7 +73,7 @@ fetch_clients_for_table() {
         return 0
     fi
 
-    rport_api "GET" "/clients"
+    procy_api "GET" "/clients"
 }
 
 enrich_clients_for_table() {
@@ -89,7 +90,7 @@ enrich_clients_for_table() {
         local row id detail_json merged_row
         while IFS= read -r row; do
                 id=$(echo "$row" | jq -r '.id')
-                detail_json=$(rport_api "GET" "/clients/${id}")
+                detail_json=$(procy_api "GET" "/clients/${id}")
                 merged_row=$(jq -nc --argjson base "$row" --argjson detail "$(echo "$detail_json" | jq '.data')" '$base + $detail')
             echo "$merged_row" >> "$tmp_rows"
         done < <(echo "$clients_json" | jq -c '.data[]?')
@@ -135,20 +136,18 @@ main() {
         fail "Invalid --status value '$status_filter'. Expected 'online' or 'offline'."
     fi
 
-    # Check for required environment variables
-    [ -z "${RPORT_HOST:-}" ] && fail "RPORT_HOST environment variable not set."
-    [ -z "${RPORT_CREDENTIALS:-}" ] && fail "RPORT_CREDENTIALS environment variable not set."
+    # Check for required environment variables (PROCY_*, falling back to legacy RPORT_*)
+    procy_require_env
 
     # Check for required commands
     command -v jq >/dev/null || fail "'jq' is required but not installed. Please install it."
     command -v curl >/dev/null || fail "'curl' is required but not installed. Please install it."
     command -v column >/dev/null || fail "'column' is required but not installed. Please install it (e.g., 'bsdmainutils' on Debian/Ubuntu)."
 
-    readonly RPORT_URL_ROOT="https://${RPORT_HOST}/api/v1"
 
     local clients_json
     if [[ "$output_format" == "json" && -z "$status_filter" ]]; then
-        clients_json=$(rport_api "GET" "/clients")
+        clients_json=$(procy_api "GET" "/clients")
         echo "$clients_json"
         exit 0
     fi
@@ -156,7 +155,7 @@ main() {
     # Request status-friendly fields first, with fallback for older/stricter servers.
     clients_json=$(fetch_clients_for_table)
 
-    # Some rport servers still return a slim /clients payload.
+    # Some (older rport) servers still return a slim /clients payload.
     # If status/tunnel fields are missing, enrich rows via /clients/<id> as fallback.
     clients_json=$(enrich_clients_for_table "$clients_json")
 

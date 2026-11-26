@@ -2,11 +2,15 @@
 
 set -euo pipefail
 
+# procy-tunnel is called from this script's own directory (symlinks resolved), so it works whichever
+# command names (procy-* or the legacy rport-*) are on PATH.
+PROCY_TUNNEL="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/procy-tunnel.sh"
+
 # Function to print usage and exit
 usage() {
   local exit_code="${1:-1}"
   echo "Usage: $0 <remote> <local_mount_point>"
-  echo "  Mount a remote rport client directory locally via SSHFS."
+  echo "  Mount a remote Procy client directory locally via SSHFS."
   echo "  -h, --help  Show this help message."
   echo "  Remote must be specified as <client_name>:/remote/path"
   echo "  Example: $0 client-1:/home/user /mnt/remote"
@@ -41,7 +45,7 @@ main() {
     fi
 
     local ssh_conn
-    ssh_conn=$(rport-tunnel "$client_name")
+    ssh_conn=$("$PROCY_TUNNEL" "$client_name")
     if [ -z "$ssh_conn" ]; then
       echo "Error: Failed to create tunnel for client '$client_name'." >&2
       exit 1

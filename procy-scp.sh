@@ -1,12 +1,16 @@
 #!/bin/bash
 
 set -e
+
+# procy-tunnel is called from this script's own directory (symlinks resolved), so it works whichever
+# command names (procy-* or the legacy rport-*) are on PATH.
+PROCY_TUNNEL="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/procy-tunnel.sh"
  
 # Function to print usage and exit
 usage() {
   local exit_code="${1:-1}"
   echo "Usage: $0 <source> <destination>"
-  echo "  Copy files between local and a remote rport client."
+  echo "  Copy files between local and a remote Procy client."
   echo "  -h, --help  Show this help message."
   echo "  Remote path must be specified as <client_name>:<path>"
   echo "  Example: $0 local.txt client-1:/remote/path/local.txt"
@@ -48,8 +52,8 @@ else
   usage
 fi
 
-# Get SSH tunnel connection details. Assuming rport-tunnel <client_name> returns "user|host|port"
-SSH_CONN=$(rport-tunnel "$CLIENT_NAME")
+# Get SSH tunnel connection details. procy-tunnel <client_name> returns "user|host|port"
+SSH_CONN=$("$PROCY_TUNNEL" "$CLIENT_NAME")
 if [ -z "$SSH_CONN" ]; then
   echo "Error: Failed to create tunnel for client '$CLIENT_NAME'." >&2
   exit 1
