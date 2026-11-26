@@ -1,0 +1,4 @@
+#!/bin/bash
+# Stand-in for ssh, scp, rsync and sshfs: logs "<name> <args>" to $STUB_LOG_DIR/ssh.log.
+echo "$(basename "$0") $*" >>"${STUB_LOG_DIR:-/dev/null}/ssh.log" 2>/dev/null || true
+exit 0
